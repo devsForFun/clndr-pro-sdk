@@ -13,21 +13,22 @@ Two separate pipelines:
 
 On <https://github.com/organizations/clndr-pro/repositories/new>:
 
-- **Name:** `clndr-sdk`
+- **Name:** `clndr-pro-sdk` (matches the local directory and the SDK's
+  `repository.url` in both `packages/*/package.json` files).
 - **Visibility:** Public
 - **Initialize:** nothing — don't add a README/license/gitignore (we already
   have them).
 
 ### 1.2 Push
 
-From inside `apps/clndr-sdk/`:
+From inside the `clndr-pro-sdk/` repo root:
 
 ```bash
-git init
+git init                                 # only if it's a fresh clone without git
 git add .
 git commit -m "Initial commit — @clndr-pro/sdk and @clndr-pro/react v0.1.3"
 git branch -M main
-git remote add origin git@github.com:clndr-pro/clndr-sdk.git
+git remote add origin git@github.com:clndr-pro/clndr-pro-sdk.git
 git push -u origin main
 ```
 
@@ -54,7 +55,7 @@ security updates.
 **npm does not track GitHub.** Pushing commits to `main` does **not** change
 what appears on [npmjs.com](https://www.npmjs.com/package/@clndr-pro/sdk?activeTab=versions).
 A new version shows up only after a successful **`npm publish`** (manual) or
-after the **Publish** GitHub Action runs (see §2.3). That action only runs
+after the **Publish** GitHub Action runs (see § 2.3). That action only runs
 when you **push a git tag** matching `v*` (e.g. `v0.1.3`), and only if
 `NPM_TOKEN` is configured on the repo. Until then, the registry stays on the
 last published version even if `package.json` in the repo is already bumped.
@@ -73,7 +74,7 @@ npm login
 ### 2.2 Manual publish (first release)
 
 ```bash
-cd apps/clndr-sdk
+# From the clndr-pro-sdk/ repo root:
 npm ci
 npm run build --workspace @clndr-pro/sdk --workspace @clndr-pro/react
 npm publish --workspace @clndr-pro/sdk  --access public
@@ -87,12 +88,12 @@ Verify:
 
 ### 2.3 Automated publish (subsequent releases)
 
-The `.github/workflows/publish.yml` workflow publishes both packages when a tag matching `v*` is pushed. It publishes the **version strings in
+The `.github/workflows/publish.yml` workflow publishes both packages when a
+tag matching `v*` is pushed. It publishes the **version strings in
 `packages/sdk/package.json` and `packages/react/package.json`** — bump those
 **before** tagging so npm gets the version you intend (the tag name and
-`package.json` `version` should match, e.g. tag `v0.1.3` with `"version":
-"0.1.3"` in both packages).
-
+`package.json` `version` should match, e.g. tag `v0.1.4` with `"version":
+"0.1.4"` in both packages).
 
 Set up once:
 
@@ -126,52 +127,94 @@ Never `unpublish` 24h+ after release — it breaks everyone who installed it.
 
 ---
 
-## 3. Deploy the clndr.pro API
+## 3. Deploy the clndr.pro app itself
 
-The SDK talks to the clndr.pro Next.js app. Until that's deployed to a
-public URL, consumers can't use the default `baseUrl`.
+> The SDK targets `https://clndr.pro` by default. Until the app is deployed
+> to that origin, SDK consumers must pass `baseUrl` explicitly. Once it's
+> live, the default works out of the box.
 
-### 3.1 Vercel (recommended, since it's a Next.js 16 app)
+clndr.pro is a satellite of [devsforfun ID](https://github.com/devsForFun/id) —
+it consumes the hub for authentication and ALL Google API access (Calendar
+sync, Meet link creation). There is no Google OAuth client configured on
+the clndr.pro side; the dfid hub owns Google. Two preconditions:
 
-From `apps/clndr-pro/`:
+1. **devsforfun ID must already be deployed** to `https://devsforfun.app`
+   (or your hub's prod URL). Follow the hub's
+   `id/docs/PRODUCTION_DEPLOY.md` first.
+2. **`@devsforfun/id-sdk` must be published** to GitHub Packages at the
+   version clndr-pro's `package.json` pins. Follow the hub's
+   `id/packages/id-sdk/PUBLISH.md`.
+
+Then deploy clndr.pro from the `clndr-pro/` sibling repo (NOT this SDK
+repo). The clndr-pro README has the canonical step-by-step; the short
+version is below.
+
+### 3.1 Vercel (recommended)
+
+From the `clndr-pro/` repo root:
 
 ```bash
-npx vercel link        # link to a new or existing project
-npx vercel env add     # one by one — or paste via dashboard
+npx vercel link        # link to a new or existing Vercel project
+npx vercel env add     # one at a time, or paste via the dashboard
 npx vercel --prod
 ```
 
-Required env vars on Vercel (matches `apps/clndr-pro/GOOGLE_CALENDAR_SETUP.md`):
+**Required env vars on Vercel** (matches `clndr-pro/.env.example`):
 
 ```
-NEXT_PUBLIC_SUPABASE_URL
-NEXT_PUBLIC_SUPABASE_ANON_KEY
-SUPABASE_SERVICE_ROLE_KEY
-SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID
-SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET
-OAUTH_STATE_SECRET           # openssl rand -base64 32
-NEXT_PUBLIC_SITE_URL         # https://clndr.pro
-RESEND_API_KEY
-RESEND_FROM_EMAIL
-UPSTASH_REDIS_REST_URL       # optional in dev, recommended in prod
-UPSTASH_REDIS_REST_TOKEN
+# Where the dfid hub lives
+DEVSFORFUN_ID_URL=https://devsforfun.app
+
+# Project + OAuth client credentials minted on the hub's /gotham/projects/new.
+# All five are shown ONCE — copy them before the success panel closes.
+DEVSFORFUN_ID_PROJECT_ID=<uuid>
+DEVSFORFUN_ID_HMAC_SECRET=<signing_secret>
+DEVSFORFUN_ID_OAUTH_CLIENT_ID=<dff_…>
+DEVSFORFUN_ID_OAUTH_CLIENT_SECRET=<plaintext oauth secret>
+DEVSFORFUN_ID_COOKIE_SECRET=<openssl rand -hex 32>
+
+# The satellite's OWN public origin. The dfid hub validates returnTo
+# origins against this project's registered redirect_uri origins.
+NEXT_PUBLIC_SITE_URL=https://clndr.pro
+
+# The satellite's OWN Supabase (per-satellite Supabase model). Make sure
+# its signing_keys.json matches the hub's — see clndr-pro/README.md.
+NEXT_PUBLIC_SUPABASE_URL=<satellite-prod-supabase-url>
+NEXT_PUBLIC_SUPABASE_ANON_KEY=<satellite-prod-anon-key>
+SUPABASE_SERVICE_ROLE_KEY=<satellite-prod-service-role-key>
+
+# Optional but recommended in prod
+UPSTASH_REDIS_REST_URL=...
+UPSTASH_REDIS_REST_TOKEN=...
+
+# Transactional email
+RESEND_API_KEY=re_...
+RESEND_FROM_EMAIL=noreply@clndr.pro
+
+# Cron secret (for /api/cron/*)
+CRON_SECRET=<openssl rand -hex 32>
+
+# INSTALL-TIME ONLY (NOT a runtime env var): read:packages PAT so
+# `npm install` can fetch @devsforfun/id-sdk from GitHub Packages.
+GITHUB_TOKEN=ghp_xxxxxxxxxxxx
 ```
 
-Point Supabase at your hosted project — local Supabase is fine for dev but
-not for a deployed app.
+`GITHUB_TOKEN` is the one Vercel-specific quirk: clndr-pro's `.npmrc`
+declares `//npm.pkg.github.com/:_authToken=${GITHUB_TOKEN}`, so the
+build's `npm install` step needs it in the env. Set it as a regular
+Project Environment Variable — Vercel exposes env vars to install
+scripts automatically.
 
 ### 3.2 Custom domain
 
 Add `clndr.pro` as a custom domain in Vercel → Settings → Domains. Update
 DNS (A/CNAME records per Vercel's instructions).
 
-Once the domain resolves:
-
-- Update Google Cloud OAuth **Authorized redirect URIs** to include
-  `https://clndr.pro/api/calendar/import/google/callback` and the Supabase
-  `https://<project-ref>.supabase.co/auth/v1/callback`.
-- Update Supabase **Authentication → URL Configuration → Site URL** to
-  `https://clndr.pro`.
+Once the domain resolves, register `https://clndr.pro/auth/callback` as
+a redirect URI on the dfid hub's OAuth client for this project (hub UI
+→ Gotham → Projects → your project → OAuth client → redirect URIs).
+There is no Google Cloud OAuth client to update on the clndr.pro side —
+the hub holds Google credentials.
 
 ### 3.3 Verify the deployed API from the SDK
 
@@ -188,7 +231,7 @@ const clndr = new Clndr(process.env.CLNDR_SECRET_KEY!);
 
 ### 3.4 Self-host users
 
-Anyone running their own fork passes `baseUrl` explicitly:
+Anyone running their own fork of clndr.pro passes `baseUrl` explicitly:
 
 ```ts
 new Clndr({ apiKey: '...', baseUrl: 'https://bookings.myco.com' });
@@ -219,8 +262,10 @@ and in React:
 - [ ] `npm i @clndr-pro/react` in a fresh Next.js app resolves both packages.
 - [ ] GitHub Actions CI is green on `main`.
 - [ ] Publish workflow ran successfully on the first `v0.1.3` tag.
-- [ ] A booking created via the deployed API appears in the production
-      Supabase `meetings` table.
-- [ ] Google Meet end-to-end works against the deployed app.
+- [ ] A booking created via the deployed API appears in clndr.pro's
+      production Supabase `meetings` table.
+- [ ] Google Meet end-to-end works against the deployed app — confirms
+      the dfid hub proxy is wired and the booking page owner has Google
+      linked at the hub (hub's `/settings/connected-accounts/google`).
 - [ ] CORS preflight + GET from a third-party origin succeeds with a
       publishable key.
