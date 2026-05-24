@@ -177,11 +177,14 @@ DEVSFORFUN_ID_COOKIE_SECRET=<openssl rand -hex 32>
 # origins against this project's registered redirect_uri origins.
 NEXT_PUBLIC_SITE_URL=https://clndr.pro
 
-# The satellite's OWN Supabase (per-satellite Supabase model). Make sure
-# its signing_keys.json matches the hub's — see clndr-pro/README.md.
+# The satellite's OWN Supabase (per-satellite Supabase model). clndr.pro
+# re-mints hub JWTs with its OWN signing key — set SUPABASE_JWT_SIGNING_KEY
+# to that key and import it into the project's JWKS. Do NOT copy the hub's
+# key (org-wide kid uniqueness 409s). See clndr-pro/README.md + §2.7(b).
 NEXT_PUBLIC_SUPABASE_URL=<satellite-prod-supabase-url>
 NEXT_PUBLIC_SUPABASE_ANON_KEY=<satellite-prod-anon-key>
 SUPABASE_SERVICE_ROLE_KEY=<satellite-prod-service-role-key>
+SUPABASE_JWT_SIGNING_KEY=<satellite-prod-signing-key-private-jwk>
 
 # Optional but recommended in prod
 UPSTASH_REDIS_REST_URL=...

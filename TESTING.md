@@ -63,8 +63,12 @@ cp .env.example .env.local
 # from §1, the satellite's own Supabase URL/keys after `supabase start`,
 # and Resend creds if you want email confirmations.
 
-# IMPORTANT: per-satellite Supabase needs the hub's signing keys.
-cp ../id/supabase/signing_keys.json ./supabase/signing_keys.json
+# IMPORTANT: clndr.pro uses TOKEN RE-MINTING, NOT the hub's signing key.
+# Generate the satellite's OWN signing key and point the app at it:
+supabase gen signing-key --algorithm ES256   # writes ./supabase/signing_keys.json
+# Set SUPABASE_JWT_SIGNING_KEY in clndr-pro/.env.local to that file's contents
+# (config.toml already loads it for local PostgREST via signing_keys_path).
+# See clndr-pro/README.md + INTEGRATION_HANDOFF.md §2.7(b).
 
 supabase start                         # default-port Supabase
 supabase db reset                      # apply all migrations
@@ -357,4 +361,4 @@ Expect `200` with the booking-page payload and no CORS error.
 | Slot list empty                                 | Owner has no availability set, or the date is outside `max_days_ahead`.                                                                               |
 | "Google Calendar not connected"                 | Owner hasn't linked Google **at the dfid hub**. Visit `http://localhost:3001/settings/connected-accounts/google` and link there — not via clndr.pro.  |
 | `npm install` errors `401` on `@devsforfun/id-sdk` | `$GITHUB_TOKEN` not exported in the shell running clndr.pro's install. PAT needs `read:packages`. |
-| RLS-empty results in clndr.pro                  | The satellite's `supabase/signing_keys.json` doesn't match the hub's. Re-copy from `../id/supabase/signing_keys.json` and `supabase stop && supabase start`. |
+| RLS-empty results in clndr.pro                  | clndr.pro re-mints Data API tokens with its OWN key. Ensure `SUPABASE_JWT_SIGNING_KEY` (in clndr-pro's env) matches the key in `supabase/signing_keys.json`, then `supabase stop && supabase start`. Do NOT copy the hub's key. See clndr-pro/TESTING.md. |
