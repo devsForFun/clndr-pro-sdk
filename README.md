@@ -73,6 +73,14 @@ replaced via the `components` prop, and every class name overridden via
 `classNames`. This makes them drop-in compatible with Shadcn UI, MUI, Chakra,
 or any other design system.
 
+Booking-page descriptions written in markdown are **rendered out of the box** —
+headings, lists, links, GFM tables, code blocks — using semantic shadcn/Tailwind
+tokens so they inherit your theme. The renderer is lazy-loaded in a separate
+chunk: pages without a description, or apps that pass their own
+`MarkdownRenderer` slot, never download `react-markdown` + `remark-gfm`. See the
+[react package README](./packages/react/README.md#markdown-descriptions-rendered-for-you)
+for the slot API.
+
 ```tsx
 import { BookingForm } from '@clndr-pro/react';
 import { Button } from '@/components/ui/button';

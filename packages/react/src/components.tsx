@@ -1,6 +1,6 @@
 'use client';
 
-import React, { ComponentType, FormEvent, useMemo, useState } from 'react';
+import React, { ComponentType, FormEvent, Suspense, lazy, useMemo, useState } from 'react';
 import type { BookingQuestion, TimeSlot } from '@clndr-pro/sdk';
 import { useAvailableSlots, useBookingPage, useCreateBooking } from './hooks';
 
@@ -24,6 +24,11 @@ type InputProps = React.InputHTMLAttributes<HTMLInputElement>;
 type LabelProps = React.LabelHTMLAttributes<HTMLLabelElement>;
 type TextareaProps = React.TextareaHTMLAttributes<HTMLTextAreaElement>;
 
+export interface MarkdownRendererProps {
+  content: string;
+  className?: string;
+}
+
 export interface ComponentSlots {
   Root?: ComponentType<DivProps>;
   Card?: ComponentType<DivProps>;
@@ -34,6 +39,24 @@ export interface ComponentSlots {
   Heading?: ComponentType<React.HTMLAttributes<HTMLHeadingElement>>;
   Muted?: ComponentType<DivProps>;
   Error?: ComponentType<DivProps>;
+  /**
+   * Renders the booking page's markdown description. If you don't pass one,
+   * the SDK lazy-loads a built-in `react-markdown` + `remark-gfm` default
+   * (only fetched when a description is actually rendered). Pass your own to
+   * use a different renderer — your code is bundled normally and the default
+   * chunk is never requested.
+   */
+  MarkdownRenderer?: ComponentType<MarkdownRendererProps>;
+}
+
+const LazyDefaultMarkdownRenderer = lazy(() => import('./default-markdown-renderer'));
+
+function SuspendedDefaultMarkdownRenderer(props: MarkdownRendererProps) {
+  return (
+    <Suspense fallback={null}>
+      <LazyDefaultMarkdownRenderer {...props} />
+    </Suspense>
+  );
 }
 
 const defaultComponents: Required<ComponentSlots> = {
@@ -46,6 +69,7 @@ const defaultComponents: Required<ComponentSlots> = {
   Heading: (p) => <h2 {...p} />,
   Muted: (p) => <div {...p} />,
   Error: (p) => <div {...p} />,
+  MarkdownRenderer: SuspendedDefaultMarkdownRenderer,
 };
 
 export interface ClassNameMap {
@@ -63,6 +87,13 @@ export interface ClassNameMap {
   slotButton?: string;
   slotButtonSelected?: string;
   dateInput?: string;
+  /**
+   * Wrapper class for the markdown description block. Defaults to
+   * `clndr-description` for consumers using class-name selectors; pass any
+   * Tailwind utility (e.g. `'prose dark:prose-invert max-w-none'`) to opt
+   * into a different layout.
+   */
+  description?: string;
 }
 
 const defaultClasses: Required<ClassNameMap> = {
@@ -80,6 +111,7 @@ const defaultClasses: Required<ClassNameMap> = {
   slotButton: 'clndr-slot-btn',
   slotButtonSelected: 'clndr-slot-btn--selected',
   dateInput: 'clndr-date-input',
+  description: 'clndr-description',
 };
 
 function mergeSlots(user?: ComponentSlots): Required<ComponentSlots> {
@@ -175,6 +207,8 @@ export function BookingForm({ slug, prefill, classNames, components, onBooked }:
     onBooked?.(res.id);
   }
 
+  const description = page.bookingPage.description?.trim();
+
   return (
     <C.Root className={cls.root}>
       <div>
@@ -183,6 +217,8 @@ export function BookingForm({ slug, prefill, classNames, components, onBooked }:
           {page.userProfile.full_name ?? page.userProfile.username} · {page.bookingPage.duration_minutes} min
         </C.Muted>
       </div>
+
+      {description ? <C.MarkdownRenderer content={description} className={cls.description} /> : null}
 
       {!selectedSlot ? (
         <div>

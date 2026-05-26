@@ -4,7 +4,12 @@ export type { ClndrProviderProps } from './provider';
 export { useBookingPage, useAvailableSlots, useCreateBooking } from './hooks';
 
 export { BookingForm } from './components';
-export type { BookingFormProps, ComponentSlots, ClassNameMap } from './components';
+export type {
+  BookingFormProps,
+  ComponentSlots,
+  ClassNameMap,
+  MarkdownRendererProps,
+} from './components';
 
 export { BookingInline } from './inline';
 export { BookingModal } from './modal';

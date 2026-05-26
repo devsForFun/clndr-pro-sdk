@@ -1,6 +1,6 @@
 {
   "name": "@clndr-pro/react",
-  "version": "0.1.4",
+  "version": "0.2.0",
   "description": "React components for embedding clndr.pro booking flows.",
   "license": "MIT",
   "main": "./dist/index.cjs",
@@ -24,15 +24,18 @@
   "keywords": ["clndr", "scheduling", "calendar", "booking", "react", "shadcn"],
   "sideEffects": false,
   "scripts": {
-    "build": "tsup src/index.ts --format cjs,esm --dts --clean --external react --external react-dom",
-    "typecheck": "tsc --noEmit"
+    "build": "tsup src/index.ts --format cjs,esm --dts --clean --external react --external react-dom --splitting",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
   },
   "peerDependencies": {
     "react": ">=18",
     "react-dom": ">=18"
   },
   "dependencies": {
-    "@clndr-pro/sdk": "0.1.4"
+    "@clndr-pro/sdk": "0.1.4",
+    "react-markdown": "^9.0.0",
+    "remark-gfm": "^4.0.0"
   },
   "devDependencies": {
     "@types/react": "^18.0.0",
@@ -40,7 +43,8 @@
     "react": "^18.0.0",
     "react-dom": "^18.0.0",
     "tsup": "^8.0.0",
-    "typescript": "^5.4.0"
+    "typescript": "^5.4.0",
+    "vitest": "^2.1.0"
   },
   "publishConfig": {
     "access": "public"
