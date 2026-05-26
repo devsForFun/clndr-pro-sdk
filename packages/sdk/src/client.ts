@@ -33,7 +33,7 @@ export class Clndr {
     if (!opts.apiKey) throw new Error('Clndr: `apiKey` is required');
     this.apiKey = opts.apiKey;
     this.baseUrl = (opts.baseUrl ?? DEFAULT_BASE).replace(/\/+$/, '');
-    this.fetchImpl = opts.fetch ?? (globalThis.fetch as typeof fetch);
+    this.fetchImpl = opts.fetch ?? (globalThis.fetch.bind(globalThis) as typeof fetch);
     this.keyType = this.apiKey.startsWith('clndr_pk_') ? 'publishable' : 'secret';
 
     this.bookingPages = new BookingPagesResource(this);
