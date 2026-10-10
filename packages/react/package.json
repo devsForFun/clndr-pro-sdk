@@ -29,7 +29,7 @@
   "keywords": ["clndr", "scheduling", "calendar", "booking", "react", "shadcn"],
   "sideEffects": false,
   "scripts": {
-    "build": "tsup src/index.ts --format cjs,esm --dts --clean --external react --external react-dom --splitting",
+    "build": "tsup",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
   },
