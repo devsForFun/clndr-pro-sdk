@@ -21,11 +21,11 @@
   "files": ["dist", "README.md"],
   "repository": {
     "type": "git",
-    "url": "https://github.com/clndr-pro/clndr-pro-sdk.git",
+    "url": "https://github.com/devsForFun/clndr-pro-sdk.git",
     "directory": "packages/react"
   },
-  "bugs": "https://github.com/clndr-pro/clndr-pro-sdk/issues",
-  "homepage": "https://github.com/clndr-pro/clndr-pro-sdk#readme",
+  "bugs": "https://github.com/devsForFun/clndr-pro-sdk/issues",
+  "homepage": "https://github.com/devsForFun/clndr-pro-sdk#readme",
   "keywords": ["clndr", "scheduling", "calendar", "booking", "react", "shadcn"],
   "sideEffects": false,
   "scripts": {
