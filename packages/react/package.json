@@ -1,30 +1,35 @@
 {
   "name": "@clndr-pro/react",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "React components for embedding clndr.pro booking flows.",
   "license": "MIT",
-  "main": "./dist/index.cjs",
+  "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.mjs",
-      "require": "./dist/index.cjs"
+      "import": {
+        "types": "./dist/index.d.mts",
+        "default": "./dist/index.mjs"
+      },
+      "require": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      }
     }
   },
   "files": ["dist", "README.md"],
   "repository": {
     "type": "git",
-    "url": "https://github.com/clndr-pro/clndr-pro-sdk.git",
+    "url": "https://github.com/devsForFun/clndr-pro-sdk.git",
     "directory": "packages/react"
   },
-  "bugs": "https://github.com/clndr-pro/clndr-pro-sdk/issues",
-  "homepage": "https://github.com/clndr-pro/clndr-pro-sdk#readme",
+  "bugs": "https://github.com/devsForFun/clndr-pro-sdk/issues",
+  "homepage": "https://github.com/devsForFun/clndr-pro-sdk#readme",
   "keywords": ["clndr", "scheduling", "calendar", "booking", "react", "shadcn"],
   "sideEffects": false,
   "scripts": {
-    "build": "tsup src/index.ts --format cjs,esm --dts --clean --external react --external react-dom --splitting",
+    "build": "tsup",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
   },
@@ -33,13 +38,16 @@
     "react-dom": ">=18"
   },
   "dependencies": {
-    "@clndr-pro/sdk": "0.1.4",
+    "@clndr-pro/sdk": "0.1.5",
     "react-markdown": "^9.0.0",
     "remark-gfm": "^4.0.0"
   },
   "devDependencies": {
+    "@testing-library/dom": "^10.4.2",
+    "@testing-library/react": "^16.3.3",
     "@types/react": "^18.0.0",
     "@types/react-dom": "^18.0.0",
+    "jsdom": "^26.1.0",
     "react": "^18.0.0",
     "react-dom": "^18.0.0",
     "tsup": "^8.0.0",

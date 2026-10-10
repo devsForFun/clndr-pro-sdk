@@ -1,26 +1,31 @@
 {
   "name": "@clndr-pro/sdk",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "TypeScript SDK for clndr.pro — booking pages, slots, and meetings.",
   "license": "MIT",
-  "main": "./dist/index.cjs",
+  "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.mjs",
-      "require": "./dist/index.cjs"
+      "import": {
+        "types": "./dist/index.d.mts",
+        "default": "./dist/index.mjs"
+      },
+      "require": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      }
     }
   },
   "files": ["dist", "README.md"],
   "repository": {
     "type": "git",
-    "url": "https://github.com/clndr-pro/clndr-pro-sdk.git",
+    "url": "https://github.com/devsForFun/clndr-pro-sdk.git",
     "directory": "packages/sdk"
   },
-  "bugs": "https://github.com/clndr-pro/clndr-pro-sdk/issues",
-  "homepage": "https://github.com/clndr-pro/clndr-pro-sdk#readme",
+  "bugs": "https://github.com/devsForFun/clndr-pro-sdk/issues",
+  "homepage": "https://github.com/devsForFun/clndr-pro-sdk#readme",
   "keywords": ["clndr", "scheduling", "calendar", "booking", "sdk"],
   "scripts": {
     "build": "tsup src/index.ts --format cjs,esm --dts --clean",

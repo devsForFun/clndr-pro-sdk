@@ -153,9 +153,9 @@ Then follow the same env + provider setup as § 4a.
 ```bash
 cd /path/to/clndr-pro-sdk/packages/sdk   && npm pack
 cd /path/to/clndr-pro-sdk/packages/react && npm pack
-# produces clndr-pro-sdk-0.1.3.tgz and clndr-pro-react-0.1.3.tgz
+# produces clndr-pro-sdk-0.1.5.tgz and clndr-pro-react-0.2.1.tgz
 # install in the target app:
-npm i /path/to/clndr-pro-sdk-0.1.3.tgz /path/to/clndr-pro-react-0.1.3.tgz
+npm i /path/to/clndr-pro-sdk-0.1.5.tgz /path/to/clndr-pro-react-0.2.1.tgz
 ```
 
 ---
@@ -354,9 +354,10 @@ Expect `200` with the booking-page payload and no CORS error.
 
 | Symptom                                         | Likely cause / fix                                                                                                                                    |
 | ----------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `ClndrError: Missing API key`                   | Provider missing `publishableKey`, or `.env.local` not loaded (restart `next dev`).                                                                   |
+| `ClndrError: Missing API key`                   | Provider missing `publishableKey`, or `.env.local` not loaded (restart `next dev`). Against production: `baseUrl` is `https://clndr.pro` (the default in SDK ≤ 0.1.4), which redirects to `www` and loses the `Authorization` header. Use `https://www.clndr.pro`. |
 | `ClndrError: API key is missing required scope` | You're using a publishable key for an owner-only action. Either use the secret key on the server or add the scope (if it's allowed on the key type). |
-| `TypeError: useClndr must be used inside <ClndrProvider>` | Component rendered server-side; add `'use client'` to the page/component. |
+| `TypeError: useClndr must be used inside <ClndrProvider>` | The component isn't under `<ClndrProvider>` (check `app/layout.tsx` renders your providers file). |
+| `You're importing a component that needs useEffect` (Next.js) | `@clndr-pro/react` ≤ 0.2.0 shipped without `"use client"` in its build. Upgrade to 0.2.1+, or import the components from a `'use client'` file. |
 | CORS error in the browser                       | Base URL is incorrect (pointing to a different origin than you're calling). Check `NEXT_PUBLIC_CLNDR_BASE_URL`.                                       |
 | Slot list empty                                 | Owner has no availability set, or the date is outside `max_days_ahead`.                                                                               |
 | "Google Calendar not connected"                 | Owner hasn't linked Google **at the dfid hub**. Visit `http://localhost:3001/settings/connected-accounts/google` and link there — not via clndr.pro.  |

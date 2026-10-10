@@ -12,9 +12,13 @@ const Ctx = createContext<ClndrContextValue | null>(null);
 export interface ClndrProviderProps {
   /** Publishable key (`clndr_pk_...`) for browser use. */
   publishableKey?: string;
-  /** Already-configured client (useful for server components / tests). */
+  /**
+   * Already-configured client (custom `fetch`, tests). It has to be created
+   * on the client side: a class instance can't be passed as a prop from a
+   * Server Component.
+   */
   client?: Clndr;
-  /** Override the API base URL. */
+  /** Override the API base URL. Defaults to https://www.clndr.pro. */
   baseUrl?: string;
   children: React.ReactNode;
 }
@@ -23,9 +27,11 @@ export interface ClndrProviderProps {
  * Wrap your app with `<ClndrProvider publishableKey="clndr_pk_...">`. All
  * components read the client from context.
  *
- * For Next.js: place this inside a client layout or the root layout with
- * `"use client"`. For App Router with server components that need the
- * client, pass a pre-built `client` prop from a server parent.
+ * For the Next.js App Router: render it from a small `'use client'` file
+ * (e.g. `app/providers.tsx`) and use that in your root layout, so the layout
+ * itself stays a Server Component. Since 0.2.1 the package entry is marked
+ * `"use client"`, so `<BookingInline>` etc. can be imported straight into
+ * Server Components.
  */
 export function ClndrProvider({ publishableKey, client, baseUrl, children }: ClndrProviderProps) {
   const value = useMemo<ClndrContextValue>(() => {

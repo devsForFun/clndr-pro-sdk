@@ -11,13 +11,17 @@ import {
 export interface ClndrOptions {
   /** API key — `clndr_sk_...` (server) or `clndr_pk_...` (browser). */
   apiKey: string;
-  /** Base URL of the clndr.pro deployment. Defaults to https://clndr.pro */
+  /**
+   * Base URL of the clndr.pro deployment. Defaults to https://www.clndr.pro
+   * (the canonical host — the apex `https://clndr.pro` redirects there, and
+   * fetch drops the `Authorization` header on that cross-host redirect).
+   */
   baseUrl?: string;
   /** Optional custom fetch (for Node 16, testing, etc.). Defaults to global fetch. */
   fetch?: typeof fetch;
 }
 
-const DEFAULT_BASE = 'https://clndr.pro';
+const DEFAULT_BASE = 'https://www.clndr.pro';
 
 export class Clndr {
   private readonly apiKey: string;
@@ -87,6 +91,15 @@ function apiErrorMessage(json: unknown, status: number): string {
   return msg || `HTTP ${status}`;
 }
 
+/** `YYYY-MM-DD` from a Date's local calendar fields (not its UTC ones). */
+function toLocalYMD(d: Date): string {
+  if (Number.isNaN(d.getTime())) throw new RangeError('Clndr: getSlots() was given an invalid Date');
+  const y = String(d.getFullYear()).padStart(4, '0');
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
 class BookingPagesResource {
   constructor(private readonly client: Clndr) {}
 
@@ -104,12 +117,24 @@ class BookingPagesResource {
   }
 
   /**
-   * Get available slots for a date.
+   * Get the open slots for one day of the host's calendar. Slots come back
+   * as UTC ISO timestamps.
+   *
    * @param slug booking page slug
-   * @param date ISO date (YYYY-MM-DD) or Date object; will be sent as ISO string.
+   * @param date the day to fetch:
+   *  - a `YYYY-MM-DD` string (recommended) is sent unchanged, and the API reads
+   *    it as that calendar day in the **host's** timezone. Any other string,
+   *    such as a full ISO timestamp, is also sent unchanged; the API then picks
+   *    the host-timezone day that contains that instant.
+   *  - a `Date` is converted to `YYYY-MM-DD` from its **local** calendar fields
+   *    (`getFullYear()` / `getMonth()` / `getDate()`), i.e. the day it falls on
+   *    in the timezone this code runs in. `new Date(2026, 9, 14)` always sends
+   *    `2026-10-14`. Beware `new Date('2026-10-14')`: that is UTC midnight,
+   *    which is still the 13th locally anywhere west of UTC — pass the string
+   *    instead.
    */
   async getSlots(slug: string, date: string | Date): Promise<TimeSlot[]> {
-    const dateStr = typeof date === 'string' ? date : date.toISOString();
+    const dateStr = typeof date === 'string' ? date : toLocalYMD(date);
     const res = await this.client.request<{ data: TimeSlot[] }>(
       'GET',
       `/api/v1/booking-pages/${encodeURIComponent(slug)}/slots`,
