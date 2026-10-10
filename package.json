@@ -1,7 +1,7 @@
 {
   "name": "clndr-sdk-workspace",
   "private": true,
-  "version": "0.1.4",
+  "version": "0.2.1",
   "description": "Official SDK + React components for clndr.pro",
   "workspaces": [
     "packages/*",

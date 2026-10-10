@@ -1,6 +1,6 @@
 {
   "name": "@clndr-pro/sdk",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "TypeScript SDK for clndr.pro — booking pages, slots, and meetings.",
   "license": "MIT",
   "main": "./dist/index.js",
