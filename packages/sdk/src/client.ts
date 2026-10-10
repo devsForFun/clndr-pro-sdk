@@ -11,13 +11,17 @@ import {
 export interface ClndrOptions {
   /** API key — `clndr_sk_...` (server) or `clndr_pk_...` (browser). */
   apiKey: string;
-  /** Base URL of the clndr.pro deployment. Defaults to https://clndr.pro */
+  /**
+   * Base URL of the clndr.pro deployment. Defaults to https://www.clndr.pro
+   * (the canonical host — the apex `https://clndr.pro` redirects there, and
+   * fetch drops the `Authorization` header on that cross-host redirect).
+   */
   baseUrl?: string;
   /** Optional custom fetch (for Node 16, testing, etc.). Defaults to global fetch. */
   fetch?: typeof fetch;
 }
 
-const DEFAULT_BASE = 'https://clndr.pro';
+const DEFAULT_BASE = 'https://www.clndr.pro';
 
 export class Clndr {
   private readonly apiKey: string;

@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 import { Clndr } from './client';
 
 describe('Clndr fetch binding', () => {
@@ -44,5 +44,41 @@ describe('Clndr fetch binding', () => {
     const client = new Clndr({ apiKey: 'clndr_pk_test', fetch: customFetch });
     await client.bookingPages.get('some-slug');
     expect(called).toBe(true);
+  });
+});
+
+/** A fetch that records every URL it is called with and returns `{ data: [] }`. */
+function recordingFetch() {
+  const urls: string[] = [];
+  const fetchImpl: typeof fetch = (input) => {
+    urls.push(String(input));
+    return Promise.resolve(
+      new Response(JSON.stringify({ data: [] }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    );
+  };
+  return { urls, fetchImpl };
+}
+
+describe('Clndr base URL', () => {
+  it('defaults to the canonical www host', async () => {
+    // The apex https://clndr.pro answers 307 -> https://www.clndr.pro, and
+    // fetch drops `Authorization` on that cross-host hop, so the default has
+    // to be the www host or every call 401s with "Missing API key".
+    const { urls, fetchImpl } = recordingFetch();
+    const client = new Clndr({ apiKey: 'clndr_sk_test', fetch: fetchImpl });
+    await client.bookingPages.list();
+    expect(urls).toHaveLength(1);
+    expect(urls[0].startsWith('https://www.clndr.pro/api/v1/')).toBe(true);
+    expect(urls[0]).toBe('https://www.clndr.pro/api/v1/booking-pages');
+  });
+
+  it('honours an explicit baseUrl (trailing slash stripped)', async () => {
+    const { urls, fetchImpl } = recordingFetch();
+    const client = new Clndr({ apiKey: 'clndr_sk_test', baseUrl: 'http://localhost:3000/', fetch: fetchImpl });
+    await client.bookingPages.list();
+    expect(urls[0]).toBe('http://localhost:3000/api/v1/booking-pages');
   });
 });
