@@ -17,3 +17,11 @@ jobs:
       - run: npm ci
       - run: npm run typecheck --workspaces --if-present
       - run: npm run build --workspace @clndr-pro/sdk --workspace @clndr-pro/react
+      - run: npm test --workspace @clndr-pro/sdk --workspace @clndr-pro/react
+      - name: Smoke-test the built packages
+        run: |
+          node -e "require('@clndr-pro/sdk'); require('@clndr-pro/react')"
+          node --input-type=module -e "await import('@clndr-pro/sdk'); await import('@clndr-pro/react')"
+          for f in packages/react/dist/index.mjs packages/react/dist/index.js; do
+            head -n 1 "$f" | grep -qx '"use client";' || { echo "$f does not start with \"use client\""; exit 1; }
+          done
