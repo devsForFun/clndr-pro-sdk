@@ -56,9 +56,10 @@ security updates.
 what appears on [npmjs.com](https://www.npmjs.com/package/@clndr-pro/sdk?activeTab=versions).
 A new version shows up only after a successful **`npm publish`** (manual) or
 after the **Publish** GitHub Action runs (see § 2.3). That action only runs
-when you **push a git tag** matching `v*` (e.g. `v0.1.3`), and only if
-`NPM_TOKEN` is configured on the repo. Until then, the registry stays on the
-last published version even if `package.json` in the repo is already bumped.
+when you **push a git tag** matching `v*` (e.g. `v0.1.3`) or start it from
+the Actions tab, and only once both packages trust it on npmjs.com (§ 2.3).
+Until then, the registry stays on the last published version even if
+`package.json` in the repo is already bumped.
 
 ### 2.1 Claim the scope
 
@@ -95,14 +96,19 @@ tag matching `v*` is pushed. It publishes the **version strings in
 `package.json` `version` should match, e.g. tag `v0.1.4` with `"version":
 "0.1.4"` in both packages).
 
-Set up once:
+It uses **npm trusted publishing**: npm accepts GitHub's OIDC token for
+this workflow, so there's no `NPM_TOKEN` secret to expire and no 2FA prompt.
+Set up once, for **each** package (`@clndr-pro/sdk` and `@clndr-pro/react`):
 
-1. On <https://www.npmjs.com/settings/~/tokens> create an **Automation**
-   token with publish access to the `@clndr-pro` scope.
-2. On the GitHub repo: **Settings → Secrets and variables → Actions → New
-   repository secret** → `NPM_TOKEN = <the token>`.
-3. Enable **Settings → Actions → General → Workflow permissions → Read and
-   write permissions** (needed for provenance id-token).
+1. On npmjs.com open the package → **Settings** → **Trusted Publisher** →
+   **GitHub Actions**.
+2. Organization or user: `devsForFun`. Repository: `clndr-pro-sdk`.
+   Workflow filename: `publish.yml`. Environment: leave empty.
+3. Save. Optionally, under **Publishing access**, require 2FA and disallow
+   tokens: trusted publishing keeps working, and a leaked token can't publish.
+
+To retry a release that failed, open **Actions → Publish → Run workflow**
+on `main`. Versions already on npm are skipped.
 
 Release flow:
 
