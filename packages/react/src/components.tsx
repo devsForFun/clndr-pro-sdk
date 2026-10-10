@@ -23,6 +23,7 @@ type ButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement>;
 type InputProps = React.InputHTMLAttributes<HTMLInputElement>;
 type LabelProps = React.LabelHTMLAttributes<HTMLLabelElement>;
 type TextareaProps = React.TextareaHTMLAttributes<HTMLTextAreaElement>;
+type SelectProps = React.SelectHTMLAttributes<HTMLSelectElement>;
 
 export interface MarkdownRendererProps {
   content: string;
@@ -35,6 +36,12 @@ export interface ComponentSlots {
   Button?: ComponentType<ButtonProps>;
   Input?: ComponentType<InputProps>;
   Textarea?: ComponentType<TextareaProps>;
+  /**
+   * Renders `select` questions. Receives native `<select>` props, with the
+   * question's options passed as `<option>` children (the first one is an
+   * empty-value placeholder).
+   */
+  Select?: ComponentType<SelectProps>;
   Label?: ComponentType<LabelProps>;
   Heading?: ComponentType<React.HTMLAttributes<HTMLHeadingElement>>;
   Muted?: ComponentType<DivProps>;
@@ -65,6 +72,7 @@ const defaultComponents: Required<ComponentSlots> = {
   Button: (p) => <button {...p} />,
   Input: (p) => <input {...p} />,
   Textarea: (p) => <textarea {...p} />,
+  Select: (p) => <select {...p} />,
   Label: (p) => <label {...p} />,
   Heading: (p) => <h2 {...p} />,
   Muted: (p) => <div {...p} />,
@@ -81,6 +89,10 @@ export interface ClassNameMap {
   label?: string;
   input?: string;
   textarea?: string;
+  /** Class for `select` questions. Defaults to the `input` class. */
+  select?: string;
+  /** Class for `checkbox` question inputs. */
+  checkbox?: string;
   buttonPrimary?: string;
   buttonSecondary?: string;
   slotGrid?: string;
@@ -105,6 +117,8 @@ const defaultClasses: Required<ClassNameMap> = {
   label: 'clndr-label',
   input: 'clndr-input',
   textarea: 'clndr-textarea',
+  select: 'clndr-input',
+  checkbox: 'clndr-checkbox',
   buttonPrimary: 'clndr-btn clndr-btn-primary',
   buttonSecondary: 'clndr-btn clndr-btn-secondary',
   slotGrid: 'clndr-slot-grid',
@@ -119,7 +133,11 @@ function mergeSlots(user?: ComponentSlots): Required<ComponentSlots> {
 }
 
 function mergeClasses(user?: ClassNameMap): Required<ClassNameMap> {
-  return { ...defaultClasses, ...(user ?? {}) };
+  const merged = { ...defaultClasses, ...(user ?? {}) };
+  // Select questions used to render as text inputs, so an existing
+  // `classNames.input` override should keep styling them.
+  if (user?.select === undefined) merged.select = merged.input;
+  return merged;
 }
 
 // -- BookingForm --------------------------------------------------------
@@ -181,7 +199,7 @@ export function BookingForm({ slug, prefill, classNames, components, onBooked }:
     return (
       <C.Root className={cls.root}>
         <C.Card className={cls.card}>
-          <C.Heading className={cls.heading}>Booking confirmed</C.Heading>
+          <C.Heading className={cls.heading}>{isApproval ? 'Request sent' : 'Booking confirmed'}</C.Heading>
           <C.Muted className={cls.muted}>
             {isApproval
               ? 'Your request has been submitted. You will receive an email once it is approved.'
@@ -195,7 +213,12 @@ export function BookingForm({ slug, prefill, classNames, components, onBooked }:
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     if (!selectedSlot || !page) return;
-    const responses = Object.entries(form.responses).map(([questionId, answer]) => ({ questionId, answer }));
+    const answers = { ...form.responses };
+    // A checkbox the guest never touched is still an answer: "No".
+    for (const q of page.questions) {
+      if (q.question_type === 'checkbox' && answers[q.id] === undefined) answers[q.id] = 'No';
+    }
+    const responses = Object.entries(answers).map(([questionId, answer]) => ({ questionId, answer }));
     const res = await create({
       bookingPageId: page.bookingPage.id,
       guestName: form.name,
@@ -232,7 +255,7 @@ export function BookingForm({ slug, prefill, classNames, components, onBooked }:
             min={minDate}
             max={maxDate}
             value={date ? toYMD(date) : ''}
-            onChange={(e) => setDate(e.target.value ? new Date(e.target.value) : null)}
+            onChange={(e) => setDate(parseLocalYMD(e.target.value))}
           />
 
           {date &&
@@ -336,31 +359,91 @@ function QuestionField({
   cls: Required<ClassNameMap>;
 }) {
   const id = `clndr-q-${question.id}`;
-  return (
-    <div>
-      <C.Label className={cls.label} htmlFor={id}>
-        {question.question_text} {question.is_required && '*'}
-      </C.Label>
-      {question.question_type === 'textarea' ? (
+  const required = question.is_required;
+  let field: React.ReactNode;
+  switch (question.question_type) {
+    case 'textarea':
+      field = (
         <C.Textarea
           id={id}
           className={cls.textarea}
-          required={question.is_required}
+          required={required}
           value={value}
           onChange={(e) => onChange(e.target.value)}
         />
-      ) : (
+      );
+      break;
+    case 'select':
+      field = (
+        <C.Select
+          id={id}
+          className={cls.select}
+          required={required}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+        >
+          <option value="">Select…</option>
+          {(question.options ?? []).map((option, i) => (
+            <option key={`${i}:${option}`} value={option}>
+              {option}
+            </option>
+          ))}
+        </C.Select>
+      );
+      break;
+    case 'checkbox':
+      // Answer is 'Yes' / 'No'; a required checkbox must be ticked. A native
+      // input rather than the `Input` slot: design-system Input components
+      // are text fields and render a checkbox as a full-width box.
+      field = (
+        <input
+          id={id}
+          type="checkbox"
+          className={cls.checkbox}
+          required={required}
+          checked={value === 'Yes'}
+          onChange={(e) => onChange(e.target.checked ? 'Yes' : 'No')}
+        />
+      );
+      break;
+    default:
+      field = (
         <C.Input
           id={id}
           className={cls.input}
-          type={question.question_type === 'email' ? 'email' : 'text'}
-          required={question.is_required}
+          type={inputType(question.question_type)}
+          required={required}
           value={value}
           onChange={(e) => onChange(e.target.value)}
         />
-      )}
+      );
+  }
+  return (
+    <div>
+      <C.Label className={cls.label} htmlFor={id}>
+        {question.question_text} {required && '*'}
+      </C.Label>
+      {field}
     </div>
   );
+}
+
+function inputType(type: BookingQuestion['question_type']): string {
+  if (type === 'email') return 'email';
+  if (type === 'phone') return 'tel';
+  return 'text';
+}
+
+/**
+ * Parse an `<input type="date">` value (`YYYY-MM-DD`) as a *local* date.
+ * `new Date('2026-10-14')` would be UTC midnight, which is still Oct 13 for
+ * anyone west of UTC — and that's the day the slots request would ask for.
+ */
+function parseLocalYMD(value: string): Date | null {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (!m) return null;
+  const d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+  return Number.isNaN(d.getTime()) ? null : d;
 }
 
 function toYMD(d: Date): string {
