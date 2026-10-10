@@ -150,7 +150,7 @@ Or go even lower-level with hooks:
 import { useBookingPage, useAvailableSlots, useCreateBooking } from '@clndr-pro/react';
 
 const { data: page } = useBookingPage(slug);
-const { slots } = useAvailableSlots(slug, date);
+const { slots, refetch } = useAvailableSlots(slug, date); // refetch() after a taken slot
 const { create, isLoading } = useCreateBooking();
 ```
 
