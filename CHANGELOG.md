@@ -7,8 +7,30 @@ All notable changes to `@clndr-pro/sdk` and `@clndr-pro/react`.
 `@clndr-pro/sdk` 0.1.5 and `@clndr-pro/react` 0.2.1 (which depends on
 `@clndr-pro/sdk` 0.1.5 exactly).
 
+### Added
+
+- **@clndr-pro/react**: `useAvailableSlots` returns `refetch()`. Call it after
+  a booking fails because someone else took the slot.
+
 ### Fixed
 
+- **@clndr-pro/react**: `useAvailableSlots` works under React Strict Mode
+  (on by default in `next dev`). It skipped any request whose slug and day
+  matched the previous one, so a component that mounted with a date already
+  set (a slot list shown after a day is picked) had its only real request
+  cancelled by Strict Mode's extra effect pass and stayed on `loading`
+  forever. The hook now re-runs on the slug, the date's timestamp (a new
+  `Date` for the same instant doesn't refetch) and `refetch()`.
+- **@clndr-pro/react**: `<BookingForm>` no longer turns a failed booking (a
+  taken slot, the guest limit) into an unhandled promise rejection; the error
+  is still shown in the form.
+- **@clndr-pro/react**: `<BookingForm>` lets guests pick any future day when
+  the page has no `max_days_ahead`. `null` days used to cap the date input at
+  today.
+- **@clndr-pro/react**: `useBookingPage` starts in `loading` when given a
+  slug, so `<BookingForm>` no longer renders "Booking page not found" before
+  its first request. Both fetching hooks clear a stale `error` when they
+  start a new request.
 - **@clndr-pro/sdk**: the default base URL is now `https://www.clndr.pro`.
   `https://clndr.pro` answers `307` to the `www` host, and `fetch` drops the
   `Authorization` header on that cross-host redirect, so every call made

@@ -173,10 +173,11 @@ export function BookingForm({ slug, prefill, classNames, components, onBooked }:
   });
 
   const minDate = useMemo(() => toYMD(new Date()), []);
-  const maxDate = useMemo(
-    () => (page ? toYMD(new Date(Date.now() + page.bookingPage.max_days_ahead * 86400000)) : undefined),
-    [page],
-  );
+  // No max_days_ahead means no limit (not "today only", which `null * ms` gave).
+  const maxDate = useMemo(() => {
+    const days = page?.bookingPage.max_days_ahead;
+    return days ? toYMD(new Date(Date.now() + days * 86400000)) : undefined;
+  }, [page]);
 
   if (loadingPage) {
     return (
@@ -219,15 +220,20 @@ export function BookingForm({ slug, prefill, classNames, components, onBooked }:
       if (q.question_type === 'checkbox' && answers[q.id] === undefined) answers[q.id] = 'No';
     }
     const responses = Object.entries(answers).map(([questionId, answer]) => ({ questionId, answer }));
-    const res = await create({
-      bookingPageId: page.bookingPage.id,
-      guestName: form.name,
-      guestEmail: form.email,
-      startTime: selectedSlot.start,
-      endTime: selectedSlot.end,
-      responses,
-    });
-    onBooked?.(res.id);
+    try {
+      const res = await create({
+        bookingPageId: page.bookingPage.id,
+        guestName: form.name,
+        guestEmail: form.email,
+        startTime: selectedSlot.start,
+        endTime: selectedSlot.end,
+        responses,
+      });
+      onBooked?.(res.id);
+    } catch {
+      // useCreateBooking already holds the error and the form shows it;
+      // rethrowing here only produced an unhandled rejection.
+    }
   }
 
   const description = page.bookingPage.description?.trim();
