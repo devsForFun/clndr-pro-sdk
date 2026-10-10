@@ -129,9 +129,11 @@ Never `unpublish` 24h+ after release — it breaks everyone who installed it.
 
 ## 3. Deploy the clndr.pro app itself
 
-> The SDK targets `https://clndr.pro` by default. Until the app is deployed
-> to that origin, SDK consumers must pass `baseUrl` explicitly. Once it's
-> live, the default works out of the box.
+> The SDK targets `https://www.clndr.pro` by default (0.1.5+; earlier
+> versions used the apex `https://clndr.pro`, which redirects to `www`, and
+> `fetch` drops the `Authorization` header on that redirect). Until the app is
+> deployed to that origin, SDK consumers must pass `baseUrl` explicitly. Once
+> it's live, the default works out of the box.
 
 clndr.pro is a satellite of [devsforfun ID](https://github.com/devsForFun/id) —
 it consumes the hub for authentication and ALL Google API access (Calendar
@@ -222,14 +224,14 @@ the hub holds Google credentials.
 ### 3.3 Verify the deployed API from the SDK
 
 ```bash
-curl -H "Authorization: Bearer clndr_sk_..." https://clndr.pro/api/v1/booking-pages | jq
+curl -H "Authorization: Bearer clndr_sk_..." https://www.clndr.pro/api/v1/booking-pages | jq
 ```
 
 With no `baseUrl` override, the SDK now talks to production out of the box:
 
 ```ts
 const clndr = new Clndr(process.env.CLNDR_SECRET_KEY!);
-// → hits https://clndr.pro by default
+// → hits https://www.clndr.pro by default
 ```
 
 ### 3.4 Self-host users
