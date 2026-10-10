@@ -82,3 +82,62 @@ describe('Clndr base URL', () => {
     expect(urls[0]).toBe('http://localhost:3000/api/v1/booking-pages');
   });
 });
+
+describe('bookingPages.getSlots date param', () => {
+  const originalTZ = process.env.TZ;
+
+  afterEach(() => {
+    if (originalTZ === undefined) delete process.env.TZ;
+    else process.env.TZ = originalTZ;
+  });
+
+  async function sentDate(date: string | Date): Promise<string | null> {
+    const { urls, fetchImpl } = recordingFetch();
+    const client = new Clndr({ apiKey: 'clndr_pk_test', fetch: fetchImpl });
+    await client.bookingPages.getSlots('30-min-intro', date);
+    const url = new URL(urls[0]);
+    expect(url.pathname).toBe('/api/v1/booking-pages/30-min-intro/slots');
+    return url.searchParams.get('date');
+  }
+
+  it('passes a YYYY-MM-DD string through unchanged', async () => {
+    expect(await sentDate('2026-10-14')).toBe('2026-10-14');
+  });
+
+  it('passes any other string (e.g. a full ISO timestamp) through unchanged', async () => {
+    expect(await sentDate('2026-10-14T15:30:00.000Z')).toBe('2026-10-14T15:30:00.000Z');
+  });
+
+  it('sends a Date as YYYY-MM-DD from its local calendar fields', async () => {
+    // Local-midnight Date: the same calendar day in every timezone.
+    expect(await sentDate(new Date(2026, 9, 14))).toBe('2026-10-14');
+    expect(await sentDate(new Date(2026, 0, 5, 23, 59))).toBe('2026-01-05');
+  });
+
+  it('uses the local day, not the UTC day, west of UTC', async () => {
+    process.env.TZ = 'America/Los_Angeles';
+    // 2026-10-14T03:00Z is 8pm on Oct 13 in Los Angeles. Guard against the
+    // runtime ignoring the TZ change so this can't pass by accident.
+    const evening = new Date('2026-10-14T03:00:00Z');
+    expect(evening.getDate()).toBe(13);
+    expect(await sentDate(evening)).toBe('2026-10-13');
+
+    // 11:30pm local on Oct 14 is already Oct 15 in UTC; toISOString() would
+    // have sent the 15th.
+    const lateNight = new Date(2026, 9, 14, 23, 30);
+    expect(lateNight.toISOString().slice(0, 10)).toBe('2026-10-15');
+    expect(await sentDate(lateNight)).toBe('2026-10-14');
+  });
+
+  it('uses the local day, not the UTC day, east of UTC', async () => {
+    process.env.TZ = 'Asia/Kolkata';
+    // 00:30 on Oct 14 in India is still Oct 13 in UTC.
+    const earlyMorning = new Date(2026, 9, 14, 0, 30);
+    expect(earlyMorning.toISOString().slice(0, 10)).toBe('2026-10-13');
+    expect(await sentDate(earlyMorning)).toBe('2026-10-14');
+  });
+
+  it('rejects an invalid Date instead of sending NaN', async () => {
+    await expect(sentDate(new Date('not a date'))).rejects.toThrow(RangeError);
+  });
+});
